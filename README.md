@@ -21,7 +21,8 @@ Deux protocoles de diffusion ont été implémentés : **VBAN** et **AES67**.
 
 ## À propos du projet
 
-Le projet a pour objectif de réaliser une solution de diffusion audio multi-protocoles sur Ethernet, embarquée sur carte Teensy 4.1, incluant la synchronisation temporelle (PTP/IEEE1588) et le traitement audio en temps réel (float32).  
+Le projet a pour objectif de développer une solution de diffusion audio multiprotocoles sur Ethernet, embarquée sur carte Teensy 4.1.
+Il inclut la synchronisation temporelle précise (PTP/IEEE1588) et un traitement audio en temps réel avec une qualité professionnelle (float32).
 Chaque protocole dispose d’un émetteur et d’un récepteur indépendants.
 
 ## Utilisation
@@ -37,6 +38,6 @@ Chaque protocole dispose d’un émetteur et d’un récepteur indépendants.
 ---
 
 **Remarque** :  
-Ce dépôt est fourni à titre de démonstration pour la soutenance du projet BTS.  
+Ce dépôt est fourni à titre de démonstration pour le projet BTS.  
 Les codes sont documentés et peuvent servir de base à d’autres projets de diffusion audio sur réseau.
 
