@@ -8,14 +8,14 @@ Deux protocoles de diffusion ont été implémentés : **VBAN** et **AES67**.
 - **`vban/`**  
   Contient tout le nécessaire pour l’implémentation du protocole VBAN sur microcontrôleur (Teensy 4.1) :
     - **`librairies/`** : dépendances nécessaires à la compilation (VBAN, UDP, audio, etc.)
-    - **`emetteur/`** : code source de l’émetteur audio VBAN
-    - **`recepteur/`** : code source du récepteur audio VBAN
+    - **`tx_vban_f32_IEEE1588/`** : code source de l’émetteur audio VBAN
+    - **`rx_vban32_2_PTP/`** : code source du récepteur audio VBAN
 
 - **`aes67/`**  
   Contient l’implémentation du protocole AES67 (RTP synchronisé PTP, compatible Audio-over-IP) :
     - **`librairies/`** : dépendances nécessaires à la compilation (RTP, PTP, UDP, etc.)
-    - **`emetteur/`** : code source de l’émetteur audio AES67
-    - **`recepteur/`** : code source du récepteur audio AES67
+    - **`rtp_sender_ptp_synchro/`** : code source de l’émetteur audio AES67
+    - **`rpt_receiver_ptp_v2/`** : code source du récepteur audio AES67
 
 ---
 
