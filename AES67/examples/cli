@@ -1,0 +1,4 @@
+ffmpeg -protocol_whitelist file,udp,rtp -i flux.sdp -f alsa default
+
+sudo ptp4l -i enp7s0 -m -S -E -4
+
