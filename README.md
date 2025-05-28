@@ -3,21 +3,6 @@
 Ce dépôt contient l’ensemble du code source développé dans le cadre du projet de diffusion audio en temps réel sur réseau Ethernet.  
 Deux protocoles de diffusion ont été implémentés : **VBAN** et **AES67**.
 
-## Structure du dépôt
-
-<details> <summary><strong>Arborescence propre à copier</strong></summary>
-/
-├── vban/
-│   ├── librairies/
-│   ├── emetteur/
-│   └── recepteur/
-├── aes67/
-│   ├── librairies/
-│   ├── emetteur/
-│   └── recepteur/
-└── README.md
-</details>
-
 ### Dossiers
 
 - **`vban/`**  
