@@ -5,6 +5,7 @@ Deux protocoles de diffusion ont été implémentés : **VBAN** et **AES67**.
 
 ## Structure du dépôt
 
+<details> <summary><strong>Arborescence propre à copier</strong></summary>
 /
 ├── vban/
 │   ├── librairies/
@@ -15,8 +16,7 @@ Deux protocoles de diffusion ont été implémentés : **VBAN** et **AES67**.
 │   ├── emetteur/
 │   └── recepteur/
 └── README.md
-
-
+</details>
 
 ### Dossiers
 
