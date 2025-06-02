@@ -9,6 +9,11 @@
 
 using namespace qindesign::network;
 
+// === Sécurité : définition du nombre d'échantillons par bloc ===
+#ifndef AUDIO_BLOCK_SAMPLES
+#define AUDIO_BLOCK_SAMPLES 128
+#endif
+
 // === PARAMÈTRES RÉSEAU ===
 IPAddress localIP(192, 168, 1, 71);
 IPAddress subnet(255, 255, 255, 0);
@@ -38,7 +43,6 @@ l3PTP ptp(master, slave, p2p);
 elapsedMillis timerPrint1588;
 
 constexpr int BUFFER_SIZE = 128;
-constexpr int AUDIO_BLOCK_SAMPLES = 128;
 struct AudioBlock {
   uint32_t rtpTimestamp;
   float32_t data[AUDIO_BLOCK_SAMPLES];
@@ -49,13 +53,11 @@ volatile int bufHead = 0, bufTail = 0;
 
 const float sampleRate = 44100.0f;
 
-// === VARIABLES SYNCHRO DYNAMIQUE ===
+// === SYNCHRONISATION DYNAMIQUE ===
 double first_ptp_time = 0.0;
 uint32_t first_rtp_ts = 0;
 bool anchor_set = false;
-
-// --- Paramètres recalage ---
-const int RESYNC_THRESHOLD = 2 * AUDIO_BLOCK_SAMPLES; // Décalage RTP toléré (~6 ms à 44,1 kHz)
+const int RESYNC_THRESHOLD = 2 * AUDIO_BLOCK_SAMPLES;
 
 // === DÉTECTION PERTE PTP ===
 elapsedMillis timerSincePtpUpdate = 0;
@@ -74,7 +76,6 @@ double getPtpTimeNow() {
   timespec ts;
   if (EthernetIEEE1588.readTimer(ts)) {
     double t = ts.tv_sec + ts.tv_nsec / 1e9;
-    // Problème d'horloge PTP (reset synchro)
     if (t < 1577836800.0 || fabs(t - first_ptp_time) > 10.0) {
       Serial.printf("[PTP ERROR] Anomalie horaire: %.3f s (reset anchor/buffer)\n", t);
       anchor_set = false;
@@ -94,7 +95,7 @@ uint32_t getCurrentRtpTimestamp() {
 
 void pushAudioBlock(uint32_t rtpTimestamp, float32_t* src) {
   int nextHead = (bufHead + 1) % BUFFER_SIZE;
-  if (nextHead == bufTail) { // Overflow
+  if (nextHead == bufTail) {
     bufTail = (bufTail + 1) % BUFFER_SIZE;
     Serial.println("[BUFFER] ⚠️ Overflow (jitter/latence)");
   }
@@ -148,9 +149,8 @@ void setup() {
 }
 
 void loop() {
-  ptp.update();  // Mise à jour PTP
+  ptp.update();
 
-  // GESTION PERTE DE SYNCHRO PTP
   long ptpOffset = ptp.getOffset();
   if (ptpOffset != lastPtpOffset) {
     timerSincePtpUpdate = 0;
@@ -166,7 +166,7 @@ void loop() {
     Serial.println("[PTP LOST] Plus de trames PTP depuis 5s, audio en SILENCE.");
   }
 
-  // --- RÉCEPTION RTP ---
+  // --- RÉCEPTION RTP & ANCRAGE DYNAMIQUE ---
   int packetSize = udp.parsePacket();
   if (packetSize > (int)RTP_HEADER_SIZE && packetSize < (int)MAX_PACKET_SIZE) {
     int len = udp.read(packetBuffer, packetSize);
@@ -175,13 +175,12 @@ void loop() {
     uint32_t rtpTimestamp = (packetBuffer[4] << 24) | (packetBuffer[5] << 16) |
                             (packetBuffer[6] << 8) | packetBuffer[7];
 
-    // --- SYNC DYNAMIQUE ---
     int32_t rtp_offset = (int32_t)(rtpTimestamp - getCurrentRtpTimestamp());
     if (!anchor_set || abs(rtp_offset) > RESYNC_THRESHOLD) {
       first_ptp_time = getPtpTimeNow();
       first_rtp_ts = rtpTimestamp;
       anchor_set = true;
-      resetBuffer(); // optionnel : tu peux le commenter si tu ne veux pas perdre le contenu en cas de petit drift
+      resetBuffer();
       Serial.printf("[SYNC] Nouvelle ancre: PTP=%.3f s, RTP ts=%lu (offset=%ld)\n", first_ptp_time, first_rtp_ts, rtp_offset);
     }
 
