@@ -9,11 +9,6 @@
 
 using namespace qindesign::network;
 
-// === Sécurité : définition du nombre d'échantillons par bloc ===
-#ifndef AUDIO_BLOCK_SAMPLES
-#define AUDIO_BLOCK_SAMPLES 128
-#endif
-
 // === PARAMÈTRES RÉSEAU ===
 IPAddress localIP(192, 168, 1, 71);
 IPAddress subnet(255, 255, 255, 0);
