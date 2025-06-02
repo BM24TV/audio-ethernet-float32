@@ -44,7 +44,7 @@ elapsedMillis timerPrint1588;                 // Chrono logs PTP
 
 // === BUFFER CIRCULAIRE AUDIO ===
 // Permet de compenser le jitter réseau et la latence
-constexpr int BUFFER_SIZE = 16;
+constexpr int BUFFER_SIZE = 128;
 struct AudioBlock {
   uint32_t rtpTimestamp;                      // Timestamp RTP associé au bloc
   float32_t data[AUDIO_BLOCK_SAMPLES];        // Échantillons audio
