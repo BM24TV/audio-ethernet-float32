@@ -59,6 +59,25 @@ void playNextTrack() {
   trackDelay = 0;
 }
 
+void printPTPStatus() {
+  // === Affichage plus représentatif du fonctionnement PTP ===
+  Serial.println("=== État PTP ===");
+
+  Serial.print("[PTP] État FSM       : ");
+  Serial.println(ptp.getState()); // ex: SLAVE, MASTER, LISTENING
+
+  Serial.print("[PTP] Offset (ns)    : ");
+  Serial.println(ptp.getOffsetFromMasterNs()); // écart à la clock maître
+
+  Serial.print("[PTP] Delay (ns)     : ");
+  Serial.println(ptp.getMeanPathDelayNs()); // délai moyen aller-retour
+
+  Serial.print("[PTP] Drift (ppb)    : ");
+  Serial.println(ptp.getClockDriftPpb()); // dérive par rapport au maître
+
+  Serial.println("====================\n");
+}
+
 void setup() {
   Serial.begin(115200);
   while (!Serial && millis() < 3000);
@@ -91,42 +110,27 @@ void setup() {
 
   // Initialisation RTP
   rtpSender.begin();
-  RtpSender::attachLoopToYield(&rtpSender); // Permet d’appeler loop() même lors de yield()
+  RtpSender::attachLoopToYield(&rtpSender);
 
   AudioMemory_F32(24);
   audioSDPlayer.begin();
 
   Serial.println("[AUDIO] Système prêt.");
-  playNextTrack(); // Lance la première lecture
+  playNextTrack();
 }
 
 void loop() {
-  // === Lecture de la piste suivante si terminée ===
+  // Lancement piste suivante
   if (!audioSDPlayer.isPlaying() && trackDelay > 2000) {
     playNextTrack();
   }
 
-  // === Affichage de l’heure PTP toutes les 2 secondes ===
+  // Affichage état PTP toutes les 2s
   if (ptpPrintTimer > 2000) {
-    timespec ts;
-    if (EthernetIEEE1588.readTimer(ts)) {
-      time_t sec = ts.tv_sec;
-      struct tm *tm = gmtime(&sec);
-      char buf[32];
-      snprintf(buf, sizeof(buf), "%02d:%02d:%02d.%03ld",
-               tm->tm_hour, tm->tm_min, tm->tm_sec, ts.tv_nsec / 1000000);
-      Serial.print("[PTP] Heure : ");
-      Serial.println(buf);
-    }
+    printPTPStatus();
     ptpPrintTimer = 0;
   }
 
-  // === Synchronisation PTP (tâche continue) ===
+  // Synchronisation PTP
   ptp.update();
-
-  // === (OPTION) Timestamp PTP à ajouter dans RtpSender si besoin ===
-  /*
-  uint64_t ts = EthernetIEEE1588.readAndClearTxTimestamp();
-  rtpSender.setTimestamp(ts); // à implémenter si supporté
-  */
 }
