@@ -251,3 +251,29 @@ void loop() {
     lastPrint = millis();
   }
 }
+
+/*
+----------------------------------------------------------------
+EXPLICATION DU MÉCANISME DE SYNCHRONISATION  
+----------------------------------------------------------------------------------------
+
+Ce code récepteur RTP/AES67 implémente une synchronisation avec l’horloge réseau PTP (IEEE1588).
+Il s’inspire des exigences professionnelles de la norme AES67, qui impose la lecture d’audio parfaitement calée entre émetteur(s) et récepteur(s) même en présence de dérive d’horloge ou de perturbations réseau.
+
+Principe du mécanisme :
+- À la réception du premier paquet RTP, le récepteur associe une référence temporelle entre le timestamp PTP (horloge réseau) et le timestamp RTP (audio), ce qui permet de synchroniser la lecture audio en temps réel.
+- À chaque nouveau paquet RTP reçu, le code compare le timestamp RTP attendu (calculé à partir du temps PTP courant) et le timestamp RTP effectivement reçu.
+- Si un écart supérieur à un seuil paramétrable (ici, 2 blocs audio, soit ~6 ms à 44,1 kHz) est détecté, le système ré-ancre immédiatement la référence temporelle, ce qui élimine toute dérive accumulée (drift) liée à une perte PTP temporaire, un reset réseau, un changement de master clock, ou un redémarrage de l’émetteur.
+- Le buffer audio circulaire (“jitter buffer”) compense les variations courtes de délai réseau et permet une lecture fluide.
+
+Intérêt :
+- Cette approche garantit une lecture audio synchrone et continue, même lors de perturbations ou de basculement PTP, sans jamais accumuler d’offset significatif entre l’audio reçu et l’horloge réseau.
+- Le système est “fail-safe” : tout écart anormal provoque un recadrage automatique, évitant l’apparition de silences prolongés ou de décalages, tout en respectant la tolérance temporelle requise par la diffusion audio sur IP professionnelle.
+- C’est l’architecture adoptée dans de nombreux systèmes “broadcast” (Dante, AES67, Ravenna, etc.) pour assurer l’alignement parfait entre émetteurs et récepteurs.
+
+Personnalisation :
+- Le seuil de recalage (`RESYNC_THRESHOLD`) est paramétrable selon la tolérance de l’application (plus bas pour du critique, plus haut pour éviter les resync trop fréquents).
+- L’algorithme peut être étendu pour gérer des recadrages sans perte de buffer (“soft resync”) ou intégrer une gestion avancée des sous-flux RTP.
+
+En résumé, cette gestion dynamique de l’ancrage PTP/RTP est indispensable pour toute diffusion audio sur IP en environnement professionnel, garantissant robustesse, précision et résilience du système.
+*/
