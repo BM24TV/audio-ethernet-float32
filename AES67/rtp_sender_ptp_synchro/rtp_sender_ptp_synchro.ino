@@ -23,12 +23,6 @@ const float sampleRate = 44100.0f;
 const int audioBlockSamples = 16;
 AudioSettings_F32 audio_settings(sampleRate, audioBlockSamples);
 
-// === BUFFER D'ÉMISSION ===
-constexpr int BUFFER_SIZE = 128;
-float32_t sendBuffer[BUFFER_SIZE][audioBlockSamples];
-uint32_t bufferRTPts[BUFFER_SIZE];
-volatile int bufHead = 0, bufTail = 0;
-
 // === COMPOSANTS AUDIO ===
 AudioSDPlayer_F32  audioSDPlayer(audio_settings);
 AudioOutputI2S_F32 i2s1;
@@ -50,26 +44,6 @@ elapsedMillis ptpPrintTimer;
 int currentTrack = 1;
 char filename[12];
 elapsedMillis trackDelay;
-uint32_t rtpTimestamp = 0; // timestamp RTP de référence (peut être initialisé dynamiquement si besoin)
-
-// === Ajout : Prébufferisation à la lecture ===
-void bufferAudioBlock() {
-  if (!audioSDPlayer.isPlaying()) return;
-  if (((bufHead + 1) % BUFFER_SIZE) == bufTail) {
-    // Buffer plein, on ne lit rien de plus
-    return;
-  }
-  // Lis le bloc audio actuel (audioSDPlayer) et le place dans le buffer d'émission
-  float32_t* blk = audioSDPlayer.getBuffer();
-  if (blk) {
-    memcpy(sendBuffer[bufHead], blk, sizeof(float32_t) * audioBlockSamples);
-    bufferRTPts[bufHead] = rtpTimestamp;
-    bufHead = (bufHead + 1) % BUFFER_SIZE;
-    rtpTimestamp += audioBlockSamples;
-    // Lance la lecture du bloc suivant si dispo
-    audioSDPlayer.readNextBlock();
-  }
-}
 
 void playNextTrack() {
   snprintf(filename, sizeof(filename), "M%d.WAV", currentTrack);
@@ -78,8 +52,8 @@ void playNextTrack() {
 
   if (!audioSDPlayer.play(filename)) {
     Serial.println("[ERREUR] Fichier non trouvé ou invalide !");
+    return;
   }
-  rtpTimestamp = 0; // Remise à zéro à chaque nouveau fichier
 
   currentTrack++;
   if (currentTrack > 8) currentTrack = 1;
@@ -90,7 +64,7 @@ void setup() {
   Serial.begin(115200);
   while (!Serial && millis() < 3000);
 
-  Serial.println("🔊 Émetteur AES67 (RTP L24) avec PTP en cours de démarrage...");
+  Serial.println("🔊 Émetteur AES67 (RTP L24) avec PTP...");
 
   if (!SD.begin(SD_CS_PIN)) {
     Serial.println("[ERREUR] Carte SD non détectée !");
@@ -113,8 +87,9 @@ void setup() {
     if (state) ptp.begin();
   });
 
-  Serial.print("📡 IP locale : "); Serial.println(Ethernet.localIP());
-  Serial.println("[ETH] Configuration réseau terminée.");
+  Serial.print("📡 IP locale : ");
+  Serial.println(Ethernet.localIP());
+  Serial.println("[ETH] Réseau configuré.");
 
   rtpSender.begin();
   RtpSender::attachLoopToYield(&rtpSender);
@@ -123,32 +98,14 @@ void setup() {
   audioSDPlayer.begin();
 
   Serial.println("[AUDIO] Système prêt.");
-  playNextTrack(); // Lance la première lecture
+  playNextTrack();
 }
 
 void loop() {
-  // === Lecture de la piste suivante si terminée ===
   if (!audioSDPlayer.isPlaying() && trackDelay > 2000) {
     playNextTrack();
   }
 
-  // === Remplissage du buffer d'émission avec les nouveaux blocs audio ===
-  bufferAudioBlock();
-
-  // === Envoi des blocs RTP au fil de l'eau, cadence basée sur l'audioBlockSamples (pour une vraie synchro PTP, timer ou top PTP ici) ===
-  static elapsedMicros audioTimer = 0;
-  const unsigned long audioPeriodUs = audioBlockSamples * 1000000UL / (unsigned long)sampleRate;
-
-  if (bufTail != bufHead && audioTimer >= audioPeriodUs) {
-    audioTimer -= audioPeriodUs;
-    // Envoi du bloc audio depuis le buffer circulaire
-    float32_t* toSend = sendBuffer[bufTail];
-    uint32_t tsRtp = bufferRTPts[bufTail];
-    rtpSender.send(toSend, tsRtp); // Envoi RTP L24
-    bufTail = (bufTail + 1) % BUFFER_SIZE;
-  }
-
-  // === Affichage de l’heure PTP toutes les 2 secondes ===
   if (ptpPrintTimer > 2000) {
     timespec ts;
     if (EthernetIEEE1588.readTimer(ts)) {
