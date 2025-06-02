@@ -20,11 +20,11 @@ constexpr uint16_t destPort = 5005;
 
 // === CONFIG AUDIO ===
 const float sampleRate = 44100.0f;
-const int audioBlockSamples = 128;
+const int audioBlockSamples = 16;
 AudioSettings_F32 audio_settings(sampleRate, audioBlockSamples);
 
 // === BUFFER D'ÉMISSION ===
-constexpr int BUFFER_SIZE = 16;
+constexpr int BUFFER_SIZE = 128;
 float32_t sendBuffer[BUFFER_SIZE][audioBlockSamples];
 uint32_t bufferRTPts[BUFFER_SIZE];
 volatile int bufHead = 0, bufTail = 0;
