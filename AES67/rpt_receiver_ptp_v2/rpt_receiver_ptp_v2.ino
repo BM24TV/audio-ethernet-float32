@@ -11,7 +11,7 @@ using namespace qindesign::network;
 
 // ======= PARAMÈTRES RESEAU =======
 // Configuration IP statique du récepteur
-IPAddress localIP(192, 168, 1, 71);
+IPAddress localIP(192, 168, 1, 72);
 IPAddress subnet(255, 255, 255, 0);
 IPAddress gateway(192, 168, 1, 254);
 IPAddress dns(1, 1, 1, 1);
